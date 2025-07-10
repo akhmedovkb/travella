@@ -1,8 +1,37 @@
+// controllers/authController.js
 import pool from '../db.js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_jwt_secret';
+
+export const registerProvider = async (req, res) => {
+  const {
+    type,
+    name,
+    location,
+    contact_name,
+    email,
+    phone,
+    password,
+    description,
+    languages,
+  } = req.body;
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const result = await pool.query(
+      `INSERT INTO providers (type, name, location, contact_name, email, phone, password, description, languages)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *`,
+      [type, name, location, contact_name, email, phone, hashedPassword, description, languages]
+    );
+
+    res.status(201).json({ message: 'Поставщик зарегистрирован', provider: result.rows[0] });
+  } catch (err) {
+    console.error('Ошибка регистрации:', err);
+    res.status(500).json({ error: 'Ошибка при регистрации' });
+  }
+};
 
 export const loginProvider = async (req, res) => {
   const { email, password } = req.body;
