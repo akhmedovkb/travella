@@ -1,7 +1,4 @@
-import pkg from 'pg';
-const { Pool } = pkg;
-
-const pool = new Pool();
+import pool from '../db.js';
 
 export const registerProvider = async (req, res) => {
   const {
