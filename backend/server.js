@@ -1,17 +1,18 @@
-const express = require('express');
-const cors = require('cors');
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import authRoutes from './routes/authRoutes.js';
 
+dotenv.config();
 const app = express();
 
-// ✅ Разрешаем запросы с Vercel-домена
+// Разрешаем только frontend на Vercel
 app.use(cors({
-  origin: 'https://frontend-f40xy1ldq-komil.vercel.app'
+  origin: 'https://frontend-rl8zq7onl-komil.vercel.app'
 }));
 
 app.use(express.json());
-
-// твои роуты
-app.use('/api', require('./routes/authRoutes'));
+app.use('/api', authRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
