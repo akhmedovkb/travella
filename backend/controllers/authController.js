@@ -1,5 +1,4 @@
 // controllers/authController.js
-import bcrypt from 'bcryptjs';
 import pool from '../db.js';
 
 export const registerProvider = async (req, res) => {
@@ -11,49 +10,36 @@ export const registerProvider = async (req, res) => {
       contactPerson,
       email,
       phone,
+      languages,
       password,
       description,
-      languages,
-      images // массив base64 строк
+      images
     } = req.body;
 
-    // Валидация обязательных полей
-    if (!email || !password || !name || !type) {
-      return res.status(400).json({ error: 'Некоторые поля отсутствуют' });
-    }
+    const query = `
+      INSERT INTO providers 
+      (type, name, location, contact_name, email, phone, languages, password, description, images) 
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+    `;
 
-    // Проверка на существующего пользователя
-    const existing = await pool.query('SELECT * FROM providers WHERE email = $1', [email]);
-    if (existing.rows.length > 0) {
-      return res.status(400).json({ error: 'Поставщик с таким email уже существует' });
-    }
+    const values = [
+      type,
+      name,
+      location,
+      contactPerson,
+      email,
+      phone,
+      JSON.stringify(languages),
+      password,
+      description,
+      images // base64 string or array
+    ];
 
-    // Хеширование пароля
-    const hashedPassword = await bcrypt.hash(password, 10);
+    await pool.query(query, values);
 
-    // Сохраняем в базу
-    const result = await pool.query(
-      `INSERT INTO providers 
-       (type, name, location, contact_name, email, phone, password, description, languages, images)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING *`,
-      [
-        type,
-        name,
-        location,
-        contactPerson,
-        email,
-        phone,
-        hashedPassword,
-        description,
-        languages,
-        images || [] // если нет картинок, сохраняем пустой массив
-      ]
-    );
-
-    res.status(201).json({ message: 'Поставщик успешно зарегистрирован', provider: result.rows[0] });
-  } catch (err) {
-    console.error('Ошибка регистрации:', err);
-    res.status(500).json({ error: 'Ошибка сервера' });
+    res.status(201).json({ message: 'Поставщик успешно зарегистрирован' });
+  } catch (error) {
+    console.error('Ошибка регистрации:', error);
+    res.status(500).json({ error: 'Ошибка при регистрации поставщика' });
   }
 };
