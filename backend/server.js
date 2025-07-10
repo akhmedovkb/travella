@@ -8,7 +8,7 @@ const app = express();
 
 // Разрешаем только frontend на Vercel
 app.use(cors({
-  origin: 'https://frontend-rl8zq7onl-komil.vercel.app'
+  origin: 'https://frontend-six-ivory-24.vercel.app'
 }));
 
 app.use(express.json());
