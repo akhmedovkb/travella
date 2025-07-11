@@ -1,26 +1,16 @@
-// backend/index.js
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
-
+const dotenv = require('dotenv');
 const providerRoutes = require('./routes/providerRoutes');
-
+const clientRoutes = require('./routes/clientRoutes'); // 👈
 const app = express();
-const PORT = process.env.PORT || 5000;
 
+dotenv.config();
 app.use(cors());
 app.use(express.json());
 
-// Подключаем маршруты
 app.use('/api/providers', providerRoutes);
+app.use('/api/clients', clientRoutes); // 👈
 
-app.get('/', (req, res) => {
-  res.send('API is running');
-});
-
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
-const clientRoutes = require('./routes/clientRoutes');
-
-app.use('/api/clients', clientRoutes);
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
