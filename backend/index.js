@@ -1,25 +1,23 @@
-// server/index.js
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import providerRoutes from './routes/providerRoutes.js';
+// backend/index.js
+const express = require('express');
+const cors = require('cors');
+require('dotenv').config();
 
-dotenv.config();
+const providerRoutes = require('./routes/providerRoutes');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-app.use(cors({
-  origin: ['https://frontend-komil.vercel.app', 'https://frontend-six-ivory-24.vercel.app'],
-}));
+app.use(cors());
 app.use(express.json());
 
-app.use('/api', providerRoutes);
+// Подключаем маршруты
+app.use('/api/providers', providerRoutes);
 
 app.get('/', (req, res) => {
-  res.send('Backend is running');
+  res.send('API is running');
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
