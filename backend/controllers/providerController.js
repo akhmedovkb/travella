@@ -1,26 +1,41 @@
-// server/controllers/providerController.js
-import pool from '../db.js';
+const pool = require('../db');
+const jwt = require('jsonwebtoken');
 
-export const registerProvider = async (req, res) => {
-  const {
-    type, name, location, contact_name, email, phone,
-    password, description, languages
-  } = req.body;
+const loginProvider = async (req, res) => {
+  const { email, password } = req.body;
 
   try {
-    const query = `
-      INSERT INTO providers
-      (type, name, location, contact_name, email, phone, password, description, languages, created_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9, NOW())
-      RETURNING *;
-    `;
-    const values = [type, name, location, contact_name, email, phone, password, description, languages];
+    const result = await pool.query('SELECT * FROM providers WHERE email = $1', [email]);
+    const provider = result.rows[0];
 
-    const result = await pool.query(query, values);
+    if (!provider) {
+      return res.status(404).json({ error: 'Пользователь не найден' });
+    }
 
-    res.status(201).json({ message: 'Регистрация успешна', provider: result.rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Ошибка при регистрации поставщика' });
+    if (provider.password !== password) {
+      return res.status(401).json({ error: 'Неверный пароль' });
+    }
+
+    const token = jwt.sign(
+      { id: provider.id, role: 'provider' },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.json({
+      message: 'Вход выполнен успешно',
+      token,
+      provider: {
+        id: provider.id,
+        name: provider.name,
+        email: provider.email,
+        type: provider.type,
+      }
+    });
+  } catch (error) {
+    console.error('Ошибка при входе поставщика:', error);
+    res.status(500).json({ error: 'Ошибка сервера при входе' });
   }
 };
+
+module.exports = { loginProvider };
