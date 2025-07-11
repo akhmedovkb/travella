@@ -1,18 +1,23 @@
 import jwt from 'jsonwebtoken';
 
-export default function clientAuth(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+const JWT_SECRET = process.env.JWT_SECRET;
 
-  if (!token) {
-    return res.status(401).json({ error: 'Нет токена авторизации' });
+const clientAuth = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json({ error: 'Отсутствует токен авторизации' });
   }
+
+  const token = authHeader.split(' ')[1];
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     req.client = decoded;
     next();
-  } catch (err) {
-    return res.status(403).json({ error: 'Недействительный токен' });
+  } catch (error) {
+    return res.status(403).json({ error: 'Неверный или истёкший токен' });
   }
-}
+};
+
+export default clientAuth;
