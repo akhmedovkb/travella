@@ -7,7 +7,13 @@ const clientRoutes = require('./routes/clientRoutes');
 dotenv.config();
 const app = express();
 
-app.use(cors());
+// CORS с настройкой из .env
+const allowedOrigin = process.env.CORS_ORIGIN || '*';
+app.use(cors({
+  origin: allowedOrigin,
+  credentials: true,
+}));
+
 app.use(express.json());
 
 // Роуты
