@@ -7,12 +7,17 @@ const clientRoutes = require('./routes/clientRoutes');
 dotenv.config();
 const app = express();
 
-// CORS с настройкой из .env
+// CORS настройка с методами и заголовками
 const allowedOrigin = process.env.CORS_ORIGIN || '*';
-app.use(cors({
+const corsOptions = {
   origin: allowedOrigin,
   credentials: true,
-}));
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // 👈 обязательно для OPTIONS-запросов
 
 app.use(express.json());
 
@@ -20,7 +25,6 @@ app.use(express.json());
 app.use('/api/providers', providerRoutes);
 app.use('/api/clients', clientRoutes);
 
-// Тестовая корневая страница
 app.get('/', (req, res) => {
   res.send('Travella API is running');
 });
