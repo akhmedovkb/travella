@@ -1,27 +1,35 @@
 const express = require('express');
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const { createClient, getClientByEmail } = require('../models/clientModel');
-
 const router = express.Router();
+const db = require('../db');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// POST /api/clients/register
+// Регистрация клиента
 router.post('/register', async (req, res) => {
-  const { name, email, password, phone } = req.body;
+  const { name, email, phone, password } = req.body;
+
+  if (!name || !email || !phone || !password) {
+    return res.status(400).json({ error: 'Пожалуйста, заполните все поля' });
+  }
 
   try {
-    const existingClient = await getClientByEmail(email);
-    if (existingClient) {
+    const existingClient = await db.query('SELECT * FROM clients WHERE email = $1', [email]);
+    if (existingClient.rows.length > 0) {
       return res.status(400).json({ error: 'Клиент с таким email уже существует' });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newClient = await createClient({ name, email, password: hashedPassword, phone });
 
-    res.status(201).json({ message: 'Регистрация успешна', client: { id: newClient.id, name: newClient.name, email: newClient.email } });
-  } catch (err) {
-    console.error('Ошибка регистрации клиента:', err);
+    await db.query(
+      'INSERT INTO clients (name, email, phone, password) VALUES ($1, $2, $3, $4)',
+      [name, email, phone, hashedPassword]
+    );
+
+    res.status(201).json({ message: 'Клиент успешно зарегистрирован' });
+  } catch (error) {
+    console.error('Ошибка при регистрации клиента:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
