@@ -1,52 +1,50 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-
-const JWT_SECRET = process.env.JWT_SECRET;
+const pool = require('../db');
 
 // Регистрация поставщика
 router.post('/register', async (req, res) => {
   const {
-    type, name, location, contactPerson,
-    email, phone, languages, password, description, images
+    type,
+    name,
+    contact_name,
+    email,
+    phone,
+    password,
+    description,
+    location,
+    languages,
+    images
   } = req.body;
 
-  console.log('Полученные данные от формы:', req.body); // 👈 Добавлено
-
-  if (!type || !name || !location || !contactPerson || !email || !phone || !password) {
+  if (!type || !name || !contact_name || !email || !phone || !password || !location) {
     return res.status(400).json({ error: 'Пожалуйста, заполните все поля' });
   }
 
   try {
-    const existingProvider = await db.query('SELECT * FROM providers WHERE email = $1', [email]);
-    if (existingProvider.rows.length > 0) {
-      return res.status(400).json({ error: 'Поставщик с таким email уже существует' });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    await db.query(
-      'INSERT INTO providers (type, name, location, contact_person, email, phone, languages, password, description, images) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)',
+    const result = await pool.query(
+      `INSERT INTO providers
+      (type, name, contact_name, email, phone, password, description, location, languages, created_at, images)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), $10)
+      RETURNING *`,
       [
         type,
         name,
-        location,
-        contactPerson,
+        contact_name,
         email,
         phone,
-        JSON.stringify(languages),
-        hashedPassword,
+        password,
         description,
-        JSON.stringify(images)
+        location,
+        languages,
+        images
       ]
     );
 
-    res.status(201).json({ message: 'Поставщик успешно зарегистрирован' });
-  } catch (error) {
-    console.error('Ошибка при регистрации поставщика:', error);
-    res.status(500).json({ error: 'Ошибка сервера' });
+    res.status(201).json({ message: 'Поставщик успешно зарегистрирован', provider: result.rows[0] });
+  } catch (err) {
+    console.error('Ошибка при регистрации поставщика:', err);
+    res.status(500).json({ error: 'Ошибка сервера при регистрации' });
   }
 });
 
