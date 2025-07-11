@@ -1,8 +1,6 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import db from './db.js';
-
 import providerRoutes from './routes/providerRoutes.js';
 import clientRoutes from './routes/clientRoutes.js';
 
@@ -18,9 +16,9 @@ app.use('/api/providers', providerRoutes);
 app.use('/api/clients', clientRoutes);
 
 app.get('/', (req, res) => {
-  res.send('Server is running');
+  res.send('🚀 Travella server is running');
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
