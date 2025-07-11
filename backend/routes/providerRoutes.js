@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('../db');
+const { loginProvider } = require('../controllers/providerController');
 
 // Регистрация поставщика
 router.post('/register', async (req, res) => {
@@ -47,5 +48,8 @@ router.post('/register', async (req, res) => {
     res.status(500).json({ error: 'Ошибка сервера при регистрации' });
   }
 });
+
+// Вход поставщика
+router.post('/login', loginProvider);
 
 module.exports = router;
