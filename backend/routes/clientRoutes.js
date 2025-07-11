@@ -1,4 +1,3 @@
-// ✅ routes/clientRoutes.js (обновлённый)
 import express from 'express';
 import db from '../db.js';
 import bcrypt from 'bcrypt';
@@ -36,7 +35,7 @@ router.post('/register', async (req, res) => {
   }
 });
 
-// Получение данных клиента (защищённый маршрут)
+// Получение информации о текущем клиенте
 router.get('/me', clientAuth, async (req, res) => {
   try {
     const clientId = req.client.id;
@@ -48,7 +47,7 @@ router.get('/me', clientAuth, async (req, res) => {
 
     res.json(result.rows[0]);
   } catch (error) {
-    console.error('Ошибка при получении данных клиента:', error);
+    console.error('Ошибка при получении профиля клиента:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
