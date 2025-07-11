@@ -1,66 +1,61 @@
-// ✅ backend/routes/providerRoutes.js (добавим PUT маршрут)
-const express = require('express');
+import express from 'express';
+import db from '../db.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+
 const router = express.Router();
-const jwt = require('jsonwebtoken');
-const db = require('../db');
+const JWT_SECRET = process.env.JWT_SECRET;
 
-// Middleware для проверки токена
-function authenticateToken(req, res, next) {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
-  if (!token) return res.status(401).json({ error: 'Нет токена' });
+// Регистрация провайдера
+router.post('/register', async (req, res) => {
+  const { company, service_type, email, password, phone, description, images } = req.body;
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ error: 'Неверный токен' });
-    req.user = user;
-    next();
-  });
-}
-
-// PUT /api/providers/profile
-router.put('/profile', authenticateToken, async (req, res) => {
-  const { first_name, last_name, phone, password, languages } = req.body;
-  const { id } = req.user;
+  if (!company || !service_type || !email || !password || !phone || !description) {
+    return res.status(400).json({ error: 'Пожалуйста, заполните все обязательные поля' });
+  }
 
   try {
-    const fields = [];
-    const values = [];
-    let index = 1;
-
-    if (first_name) {
-      fields.push(`first_name = $${index++}`);
-      values.push(first_name);
-    }
-    if (last_name) {
-      fields.push(`last_name = $${index++}`);
-      values.push(last_name);
-    }
-    if (phone) {
-      fields.push(`phone = $${index++}`);
-      values.push(phone);
-    }
-    if (languages) {
-      fields.push(`languages = $${index++}`);
-      values.push(JSON.stringify(languages));
-    }
-    if (password) {
-      const bcrypt = require('bcrypt');
-      const hashed = await bcrypt.hash(password, 10);
-      fields.push(`password = $${index++}`);
-      values.push(hashed);
+    const existing = await db.query('SELECT * FROM providers WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'Провайдер с таким email уже зарегистрирован' });
     }
 
-    if (fields.length === 0) return res.json({ message: 'Нечего обновлять' });
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    values.push(id);
-    const query = `UPDATE providers SET ${fields.join(', ')} WHERE id = $${index}`;
-    await db.query(query, values);
+    await db.query(
+      'INSERT INTO providers (company, service_type, email, password, phone, description, images) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+      [company, service_type, email, hashedPassword, phone, description, images || null]
+    );
 
-    res.json({ message: 'Профиль обновлён' });
+    res.status(201).json({ message: 'Провайдер зарегистрирован' });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Ошибка при обновлении профиля' });
+    console.error('Ошибка при регистрации провайдера:', err);
+    res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-module.exports = router;
+// Логин провайдера
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
+    const result = await db.query('SELECT * FROM providers WHERE email = $1', [email]);
+    if (result.rows.length === 0) {
+      return res.status(401).json({ error: 'Неверный email или пароль' });
+    }
+
+    const provider = result.rows[0];
+    const isMatch = await bcrypt.compare(password, provider.password);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Неверный email или пароль' });
+    }
+
+    const token = jwt.sign({ id: provider.id }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, provider });
+  } catch (error) {
+    console.error('Ошибка при логине:', error);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+export default router;
