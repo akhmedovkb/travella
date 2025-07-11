@@ -1,37 +1,19 @@
-import express from 'express';
-import db from '../db.js';
-import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
+// Вверху файла
+const authMiddleware = require('../middleware/clientAuth');
 
-const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET;
-
-// Регистрация клиента
-router.post('/register', async (req, res) => {
-  const { name, email, phone, password } = req.body;
-
-  if (!name || !email || !phone || !password) {
-    return res.status(400).json({ error: 'Пожалуйста, заполните все поля' });
-  }
-
+// Защищённый маршрут - данные клиента
+router.get('/me', authMiddleware, async (req, res) => {
   try {
-    const existingClient = await db.query('SELECT * FROM clients WHERE email = $1', [email]);
-    if (existingClient.rows.length > 0) {
-      return res.status(400).json({ error: 'Клиент с таким email уже существует' });
+    const clientId = req.client.id;
+    const result = await db.query('SELECT id, name, email, phone FROM clients WHERE id = $1', [clientId]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Клиент не найден' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    await db.query(
-      'INSERT INTO clients (name, email, phone, password) VALUES ($1, $2, $3, $4)',
-      [name, email, phone, hashedPassword]
-    );
-
-    res.status(201).json({ message: 'Клиент успешно зарегистрирован' });
+    res.json(result.rows[0]);
   } catch (error) {
-    console.error('Ошибка при регистрации клиента:', error);
+    console.error('Ошибка при получении данных клиента:', error);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
-
-export default router;
