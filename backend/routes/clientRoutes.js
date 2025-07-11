@@ -1,12 +1,11 @@
-const express = require('express');
-const router = express.Router();
-const db = require('../db');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+import express from 'express';
+import db from '../db.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
+const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// Регистрация клиента
 router.post('/register', async (req, res) => {
   const { name, email, phone, password } = req.body;
 
@@ -34,4 +33,4 @@ router.post('/register', async (req, res) => {
   }
 });
 
-module.exports = router;
+export default router;
