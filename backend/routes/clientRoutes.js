@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET;
 
+// Регистрация клиента
 router.post('/register', async (req, res) => {
   const { name, email, phone, password } = req.body;
 
