@@ -7,66 +7,60 @@ const clientAuth = require('../middleware/clientAuth');
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
-// Регистрация клиента
+// Регистрация
 router.post('/register', async (req, res) => {
   const { name, email, phone, password } = req.body;
 
   if (!name || !email || !phone || !password) {
-    return res.status(400).json({ error: 'Пожалуйста, заполните все поля' });
+    return res.status(400).json({ error: 'Заполните все поля' });
   }
 
   try {
-    const existingClient = await db.query('SELECT * FROM clients WHERE email = $1', [email]);
-    if (existingClient.rows.length > 0) {
-      return res.status(400).json({ error: 'Клиент с таким email уже существует' });
+    const existing = await db.query('SELECT * FROM clients WHERE email = $1', [email]);
+    if (existing.rows.length > 0) {
+      return res.status(400).json({ error: 'Email уже зарегистрирован' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
+    const hashed = await bcrypt.hash(password, 10);
     await db.query(
       'INSERT INTO clients (name, email, phone, password) VALUES ($1, $2, $3, $4)',
-      [name, email, phone, hashedPassword]
+      [name, email, phone, hashed]
     );
 
-    res.status(201).json({ message: 'Клиент успешно зарегистрирован' });
-  } catch (error) {
-    console.error('Ошибка при регистрации клиента:', error);
+    res.status(201).json({ message: 'Клиент зарегистрирован' });
+  } catch (err) {
+    console.error('Ошибка регистрации клиента:', err);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
 
-// Получение данных клиента
-router.get('/me', clientAuth, async (req, res) => {
-  try {
-    const result = await db.query('SELECT id, name, email, phone FROM clients WHERE id = $1', [req.client.id]);
-    res.json(result.rows[0]);
-  } catch (error) {
-    console.error('Ошибка при получении данных клиента:', error);
-    res.status(500).json({ error: 'Ошибка сервера' });
-  }
-});
-
-// Обновление данных клиента
-router.put('/me', clientAuth, async (req, res) => {
-  const { name, phone, password } = req.body;
+// Логин
+router.post('/login', async (req, res) => {
+  const { email, password } = req.body;
 
   try {
-    if (password) {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      await db.query(
-        'UPDATE clients SET name = $1, phone = $2, password = $3 WHERE id = $4',
-        [name, phone, hashedPassword, req.client.id]
-      );
-    } else {
-      await db.query(
-        'UPDATE clients SET name = $1, phone = $2 WHERE id = $3',
-        [name, phone, req.client.id]
-      );
+    const result = await db.query('SELECT * FROM clients WHERE email = $1', [email]);
+    const client = result.rows[0];
+
+    if (!client || !(await bcrypt.compare(password, client.password))) {
+      return res.status(401).json({ error: 'Неверные данные' });
     }
 
-    res.json({ message: 'Данные успешно обновлены' });
-  } catch (error) {
-    console.error('Ошибка при обновлении данных клиента:', error);
+    const token = jwt.sign({ clientId: client.id }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token });
+  } catch (err) {
+    console.error('Ошибка логина клиента:', err);
+    res.status(500).json({ error: 'Ошибка сервера' });
+  }
+});
+
+// Профиль
+router.get('/me', clientAuth, async (req, res) => {
+  try {
+    const result = await db.query('SELECT id, name, email, phone FROM clients WHERE id = $1', [req.clientId]);
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Ошибка профиля клиента:', err);
     res.status(500).json({ error: 'Ошибка сервера' });
   }
 });
