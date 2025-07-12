@@ -6,6 +6,7 @@ const {
   getProviderProfile,
   updateProviderProfile,
 } = require('../controllers/providerController');
+
 const verifyToken = require('../middleware/providerAuth');
 
 // Регистрация
@@ -14,10 +15,10 @@ router.post('/register', registerProvider);
 // Вход
 router.post('/login', loginProvider);
 
-// Получение профиля
+// Получить профиль
 router.get('/profile', verifyToken, getProviderProfile);
 
-// Обновление профиля
+// Обновить профиль
 router.put('/profile', verifyToken, updateProviderProfile);
 
 module.exports = router;
