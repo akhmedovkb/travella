@@ -1,4 +1,3 @@
-// backend/index.js
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -8,16 +7,17 @@ const clientRoutes = require('./routes/clientRoutes');
 dotenv.config();
 const app = express();
 
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || '*',
-  credentials: true,
-}));
+// CORS
+const allowedOrigin = process.env.CORS_ORIGIN || '*';
+app.use(cors({ origin: allowedOrigin, credentials: true }));
 
 app.use(express.json());
 
+// Роуты
 app.use('/api/providers', providerRoutes);
 app.use('/api/clients', clientRoutes);
 
+// Тестовый маршрут
 app.get('/', (req, res) => {
   res.send('Travella API is running');
 });
