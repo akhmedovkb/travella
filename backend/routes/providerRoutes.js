@@ -5,6 +5,8 @@ const {
   loginProvider,
   getProviderProfile,
   updateProviderProfile,
+  createService,
+  getAllServices
 } = require('../controllers/providerController');
 
 const verifyToken = require('../middleware/providerAuth');
@@ -15,10 +17,12 @@ router.post('/register', registerProvider);
 // Вход
 router.post('/login', loginProvider);
 
-// Получить профиль
+// Профиль
 router.get('/profile', verifyToken, getProviderProfile);
-
-// Обновить профиль
 router.put('/profile', verifyToken, updateProviderProfile);
+
+// Услуги
+router.post('/services', verifyToken, createService);
+router.get('/services', verifyToken, getAllServices); // <== ДОБАВЛЕНО
 
 module.exports = router;
