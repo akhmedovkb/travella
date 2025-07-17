@@ -1,11 +1,26 @@
-
-const express = require("express");
+const express = require('express');
 const router = express.Router();
-const providerController = require("../controllers/providerController");
-const authMiddleware = require("../middleware/auth");
+const {
+  registerProvider,
+  loginProvider,
+  getProviderProfile,
+  updateProviderProfile,
+  createService,
+  getServices,
+  updateService,
+  deleteService,
+} = require('../controllers/providerController');
+const verifyToken = require('../middleware/providerAuth');
 
-router.put("/profile", authMiddleware, providerController.updateProviderProfile);
-router.put("/services/:id", authMiddleware, providerController.updateService);
-router.delete("/services/:id", authMiddleware, providerController.deleteService);
+router.post('/register', registerProvider);
+router.post('/login', loginProvider);
+
+router.get('/profile', verifyToken, getProviderProfile);
+router.put('/profile', verifyToken, updateProviderProfile);
+
+router.post('/services', verifyToken, createService);
+router.get('/services', verifyToken, getServices);
+router.put('/services/:id', verifyToken, updateService);
+router.delete('/services/:id', verifyToken, deleteService);
 
 module.exports = router;
