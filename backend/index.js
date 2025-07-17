@@ -1,8 +1,10 @@
 const express = require('express');
-const app = express();
-const providerRoutes = require('./routes/providerRoutes');
 const cors = require('cors');
+const dotenv = require('dotenv');
+const providerRoutes = require('./routes/providerRoutes');
 
+dotenv.config();
+const app = express();
 app.use(cors());
 app.use(express.json());
 
