@@ -1,34 +1,34 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
 const {
   registerProvider,
   loginProvider,
   getProviderProfile,
   updateProviderProfile,
-  addService,
-  getServices,
+  createService,
+  getProviderServices,
   updateService,
-  deleteService
-} = require('../controllers/providerController');
+  deleteService,
+} = require("../controllers/providerController");
 
-const verifyToken = require('../middleware/providerAuth');
+const verifyToken = require("../middleware/providerAuth");
 
 // Регистрация
-router.post('/register', registerProvider);
+router.post("/register", registerProvider);
 
 // Вход
-router.post('/login', loginProvider);
+router.post("/login", loginProvider);
 
 // Получить профиль
-router.get('/profile', verifyToken, getProviderProfile);
+router.get("/profile", verifyToken, getProviderProfile);
 
 // Обновить профиль
-router.put('/profile', verifyToken, updateProviderProfile);
+router.put("/profile", verifyToken, updateProviderProfile);
 
-// Услуги
-router.post('/services', verifyToken, addService);
-router.get('/services', verifyToken, getServices);
-router.put('/services/:serviceId', verifyToken, updateService);
-router.delete('/services/:serviceId', verifyToken, deleteService);
+// Услуги поставщика
+router.post("/services", verifyToken, createService);
+router.get("/services", verifyToken, getProviderServices);
+router.put("/services/:id", verifyToken, updateService);
+router.delete("/services/:id", verifyToken, deleteService);
 
 module.exports = router;
