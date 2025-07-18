@@ -82,7 +82,7 @@ exports.updateProviderProfile = async (req, res) => {
 
     if (fields.length === 0) return res.status(400).json({ error: "Нет данных для обновления" });
 
-    const updateQuery = UPDATE providers SET ${fields.join(", ")} WHERE id = $${fields.length + 1} RETURNING *;
+    const updateQuery = `UPDATE providers SET ${fields.join(", ")} WHERE id = $${fields.length + 1} RETURNING *`;
     values.push(id);
     const result = await pool.query(updateQuery, values);
     res.json(result.rows[0]);
