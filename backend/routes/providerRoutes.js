@@ -12,12 +12,17 @@ const {
 } = require('../controllers/providerController');
 const verifyToken = require('../middleware/providerAuth');
 
+// Регистрация
 router.post('/register', registerProvider);
+
+// Вход
 router.post('/login', loginProvider);
 
+// Профиль
 router.get('/profile', verifyToken, getProviderProfile);
 router.put('/profile', verifyToken, updateProviderProfile);
 
+// Услуги
 router.post('/services', verifyToken, createService);
 router.get('/services', verifyToken, getServices);
 router.put('/services/:id', verifyToken, updateService);
