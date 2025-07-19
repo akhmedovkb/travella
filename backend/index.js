@@ -1,15 +1,25 @@
-const express = require('express');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const providerRoutes = require('./routes/providerRoutes');
 
-dotenv.config();
+const express = require("express");
+const cors = require("cors");
 const app = express();
+const providerRoutes = require("./routes/providerRoutes");
+const clientRoutes = require("./routes/clientRoutes");
 
-app.use(cors());
+// ✅ Настройка CORS для фронтенда на Vercel
+app.use(
+  cors({
+    origin: "https://frontend-komil.vercel.app",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
-app.use('/api/providers', providerRoutes);
+// Роуты
+app.use("/api/providers", providerRoutes);
+app.use("/api/clients", clientRoutes);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
