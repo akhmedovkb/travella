@@ -1,31 +1,25 @@
-const express = require('express');
+
+const express = require("express");
 const router = express.Router();
 const {
   registerProvider,
   loginProvider,
   getProviderProfile,
   updateProviderProfile,
-  createService,
+  addService,
   getServices,
   updateService,
-  deleteService,
-} = require('../controllers/providerController');
-const verifyToken = require('../middleware/providerAuth');
+  deleteService
+} = require("../controllers/providerController");
+const authenticateToken = require("../middleware/authenticateToken");
 
-// Регистрация
-router.post('/register', registerProvider);
-
-// Вход
-router.post('/login', loginProvider);
-
-// Профиль
-router.get('/profile', verifyToken, getProviderProfile);
-router.put('/profile', verifyToken, updateProviderProfile);
-
-// Услуги
-router.post('/services', verifyToken, createService);
-router.get('/services', verifyToken, getServices);
-router.put('/services/:id', verifyToken, updateService);
-router.delete('/services/:id', verifyToken, deleteService);
+router.post("/register", registerProvider);
+router.post("/login", loginProvider);
+router.get("/profile", authenticateToken, getProviderProfile);
+router.put("/profile", authenticateToken, updateProviderProfile);
+router.post("/services", authenticateToken, addService);
+router.get("/services", authenticateToken, getServices);
+router.put("/services/:id", authenticateToken, updateService);
+router.delete("/services/:id", authenticateToken, deleteService);
 
 module.exports = router;
