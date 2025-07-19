@@ -3,7 +3,7 @@ const express = require("express");
 const cors = require("cors");
 const app = express();
 const providerRoutes = require("./routes/providerRoutes");
-const clientRoutes = require("./routes/clientRoutes");
+
 
 // ✅ Настройка CORS для фронтенда на Vercel
 app.use(
