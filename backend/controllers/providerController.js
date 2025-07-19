@@ -1,163 +1,147 @@
+
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const pool = require("../db");
 
 // Регистрация поставщика
-exports.registerProvider = async (req, res) => {
+const registerProvider = async (req, res) => {
+  const { email, password, name, type, languages, location, rating, reviews, images } = req.body;
   try {
-    const {
-      name,
-      email,
-      password,
-      type,
-      location,
-      contact_name,
-      phone,
-      languages,
-      description,
-      images,
-    } = req.body;
-
-    const existing = await pool.query("SELECT * FROM providers WHERE email = $1", [email]);
-    if (existing.rows.length > 0) return res.status(400).json({ error: "Email уже зарегистрирован" });
-
     const hashedPassword = await bcrypt.hash(password, 10);
-    const result = await pool.query(
-      `INSERT INTO providers 
-       (name, email, password, type, location, contact_name, phone, languages, description, images) 
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) 
-       RETURNING *`,
-      [name, email, hashedPassword, type, location, contact_name, phone, languages, description, images]
+    const newProvider = await pool.query(
+      "INSERT INTO providers (email, password, name, type, languages, location, rating, reviews, images) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING *",
+      [email, hashedPassword, name, type, languages, location, rating || 0, reviews || '[]', images || '']
     );
-
-    const token = jwt.sign({ id: result.rows[0].id, role: "provider" }, process.env.JWT_SECRET, { expiresIn: "7d" });
-    res.json({ token });
+    res.json(newProvider.rows[0]);
   } catch (err) {
-    console.error("Ошибка при регистрации:", err);
-    res.status(500).json({ error: "Ошибка сервера" });
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
 };
 
-// Вход
-exports.loginProvider = async (req, res) => {
+// Логин
+const loginProvider = async (req, res) => {
+  const { email, password } = req.body;
   try {
-    const { email, password } = req.body;
-    const result = await pool.query("SELECT * FROM providers WHERE email = $1", [email]);
+    const provider = await pool.query("SELECT * FROM providers WHERE email = $1", [email]);
+    if (provider.rows.length === 0) return res.status(400).json({ message: "User not found" });
 
-    if (result.rows.length === 0) return res.status(404).json({ error: "Поставщик не найден" });
+    const validPassword = await bcrypt.compare(password, provider.rows[0].password);
+    if (!validPassword) return res.status(400).json({ message: "Invalid password" });
 
-    const valid = await bcrypt.compare(password, result.rows[0].password);
-    if (!valid) return res.status(401).json({ error: "Неверный пароль" });
-
-    const token = jwt.sign({ id: result.rows[0].id, role: "provider" }, process.env.JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ id: provider.rows[0].id }, process.env.JWT_SECRET, { expiresIn: "1h" });
     res.json({ token });
   } catch (err) {
-    console.error("Ошибка при входе:", err);
-    res.status(500).json({ error: "Ошибка сервера" });
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
 };
 
 // Получить профиль
-exports.getProviderProfile = async (req, res) => {
+const getProviderProfile = async (req, res) => {
   try {
-    const id = req.user.id;
-    const result = await pool.query("SELECT * FROM providers WHERE id = $1", [id]);
-    res.json(result.rows[0]);
+    const provider = await pool.query("SELECT * FROM providers WHERE id = $1", [req.user.id]);
+    res.json(provider.rows[0]);
   } catch (err) {
-    console.error("Ошибка при получении профиля:", err);
-    res.status(500).json({ error: "Ошибка сервера" });
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
 };
 
 // Обновить профиль
-exports.updateProviderProfile = async (req, res) => {
+const updateProviderProfile = async (req, res) => {
+  const fields = [];
+  const values = [];
+  let index = 1;
+
+  for (let key in req.body) {
+    fields.push(`${key} = $${index}`);
+    values.push(req.body[key]);
+    index++;
+  }
+
   try {
-    const id = req.user.id;
-    const fields = [];
-    const values = [];
-    Object.entries(req.body).forEach(([key, value], index) => {
-      fields.push(`${key} = $${index + 1}`);
-      values.push(value);
-    });
-
-    if (fields.length === 0) return res.status(400).json({ error: "Нет данных для обновления" });
-
-    const updateQuery = `UPDATE providers SET ${fields.join(", ")} WHERE id = $${fields.length + 1} RETURNING *`;
-    values.push(id);
-    const result = await pool.query(updateQuery, values);
+    const result = await pool.query(
+      `UPDATE providers SET ${fields.join(", ")} WHERE id = $${index} RETURNING *`,
+      [...values, req.user.id]
+    );
     res.json(result.rows[0]);
   } catch (err) {
-    console.error("Ошибка при обновлении профиля:", err);
-    res.status(500).json({ error: "Ошибка сервера" });
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
 };
 
-// Создать услугу
-exports.createService = async (req, res) => {
+// Добавить услугу
+const addService = async (req, res) => {
+  const { title, description, price, category, images, availability } = req.body;
   try {
-    const provider_id = req.user.id;
-    const { title, description, price, category, availability, images } = req.body;
-    const result = await pool.query(
-      `INSERT INTO services (provider_id, title, description, price, category, availability, images) 
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
-      [provider_id, title, description, price, category, availability, images]
+    const newService = await pool.query(
+      "INSERT INTO services (provider_id, title, description, price, category, images, availability, created_at) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW()) RETURNING *",
+      [req.user.id, title, description, price, category, images || '', availability || []]
     );
-    res.json({ message: "Услуга добавлена", service: result.rows[0] });
+    res.json(newService.rows[0]);
   } catch (err) {
-    console.error("Ошибка при создании услуги:", err);
-    res.status(500).json({ error: "Ошибка сервера" });
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
 };
 
-// Получить услуги
-exports.getServices = async (req, res) => {
+// Получить все услуги поставщика
+const getServices = async (req, res) => {
   try {
-    const provider_id = req.user.id;
-    const result = await pool.query("SELECT * FROM services WHERE provider_id = $1", [provider_id]);
-    res.json(result.rows);
+    const services = await pool.query("SELECT * FROM services WHERE provider_id = $1", [req.user.id]);
+    res.json(services.rows);
   } catch (err) {
-    console.error("Ошибка при получении услуг:", err);
-    res.status(500).json({ error: "Ошибка сервера" });
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
 };
 
 // Обновить услугу
-exports.updateService = async (req, res) => {
+const updateService = async (req, res) => {
+  const { id } = req.params;
+  const fields = [];
+  const values = [];
+  let index = 1;
+
+  for (let key in req.body) {
+    fields.push(`${key} = $${index}`);
+    values.push(req.body[key]);
+    index++;
+  }
+
   try {
-    const id = req.params.id;
-    const provider_id = req.user.id;
-    const { title, description, price, category, availability, images } = req.body;
-
     const result = await pool.query(
-      `UPDATE services SET 
-        title = $1,
-        description = $2,
-        price = $3,
-        category = $4,
-        availability = $5,
-        images = $6
-       WHERE id = $7 AND provider_id = $8 RETURNING *`,
-      [title, description, price, category, availability, images, id, provider_id]
+      `UPDATE services SET ${fields.join(", ")} WHERE id = $${index} RETURNING *`,
+      [...values, id]
     );
-
-    if (result.rows.length === 0) return res.status(404).json({ error: "Услуга не найдена" });
-    res.json({ message: "Услуга обновлена", service: result.rows[0] });
+    res.json(result.rows[0]);
   } catch (err) {
-    console.error("Ошибка при обновлении услуги:", err);
-    res.status(500).json({ error: "Ошибка сервера" });
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
 };
 
 // Удалить услугу
-exports.deleteService = async (req, res) => {
+const deleteService = async (req, res) => {
+  const { id } = req.params;
   try {
-    const id = req.params.id;
-    const provider_id = req.user.id;
-    const result = await pool.query("DELETE FROM services WHERE id = $1 AND provider_id = $2 RETURNING *", [id, provider_id]);
-    if (result.rows.length === 0) return res.status(404).json({ error: "Услуга не найдена" });
-    res.json({ message: "Услуга удалена" });
+    await pool.query("DELETE FROM services WHERE id = $1", [id]);
+    res.json({ message: "Service deleted" });
   } catch (err) {
-    console.error("Ошибка при удалении услуги:", err);
-    res.status(500).json({ error: "Ошибка сервера" });
+    console.error(err.message);
+    res.status(500).send("Server error");
   }
+};
+
+module.exports = {
+  registerProvider,
+  loginProvider,
+  getProviderProfile,
+  updateProviderProfile,
+  addService,
+  getServices,
+  updateService,
+  deleteService
 };
